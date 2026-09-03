@@ -20,7 +20,7 @@
     "@react-google-maps/api": "^2.20.8",
     "@reduxjs/toolkit": "^2.12.0",
     "axios": "^1.18.1",
-    "chopme-frontend-common": "^1.0.70",
+    "chopme-frontend-common": "^1.0.72",
     "firebase": "^12.17.1",
     "lucide-react": "^1.26.0",
     "react": "^19.2.7",
