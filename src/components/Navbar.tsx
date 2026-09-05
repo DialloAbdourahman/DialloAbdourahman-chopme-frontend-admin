@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { ChefHat, Home, Utensils, LogOut, Menu, X } from "lucide-react";
+import { ChefHat, Home, Utensils, User, LogOut, Menu, X } from "lucide-react";
 import { AuthService } from "../services/auth.service";
 import { TokensService } from "../services/tokens.service";
 import { KEYS } from "../utils/keys";
@@ -16,6 +16,7 @@ const Navbar = () => {
   const navLinks = [
     { label: "Home", href: "/", icon: Home },
     { label: "Restaurants", href: "/restaurants", icon: Utensils },
+    { label: "Profile", href: "/profile", icon: User },
   ];
 
   const handleLogout = async () => {

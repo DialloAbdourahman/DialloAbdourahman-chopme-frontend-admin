@@ -25,12 +25,6 @@ export const RestaurantService = {
     >(`/restaurants/admin`, { params });
   },
 
-  findOnePrivate: (idOrSlug: string) => {
-    return axiosBaseClient.get<IOrchestrationResult<IRestaurantEntity>>(
-      `/restaurants/member/${idOrSlug}`,
-    );
-  },
-
   findOne: (idOrSlug: string) => {
     return axiosBaseClient.get<IOrchestrationResult<IRestaurantEntity>>(
       `/restaurants/admin/${idOrSlug}`,
@@ -53,7 +47,7 @@ export const RestaurantService = {
 
   toggleClosed: (id: string) => {
     return axiosBaseClient.patch<IOrchestrationResult<IRestaurantEntity>>(
-      `/restaurants/${id}/toggle-closed`,
+      `/restaurants/admin/${id}/toggle-closed`,
     );
   },
 

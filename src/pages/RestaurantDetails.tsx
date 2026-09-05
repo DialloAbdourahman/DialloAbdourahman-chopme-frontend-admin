@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Loader2, Trash2 } from "lucide-react";
 import { AxiosError } from "axios";
 import {
   EnumStatusResponse,
@@ -13,7 +13,10 @@ import RestaurantGeneralInfoForm from "../components/RestaurantGeneralInfoForm";
 import RestaurantAddressLocationForm from "../components/RestaurantAddressLocationForm";
 import RestaurantCoverSection from "../components/RestaurantCoverSection";
 import RestaurantGallerySection from "../components/RestaurantGallerySection";
+import RestaurantClosedSection from "../components/RestaurantClosedSection";
+import RestaurantDeleteRestoreSection from "../components/RestaurantDeleteRestoreSection";
 import DeleteModal from "../components/DeleteModal";
+import ConfirmModal from "../components/ConfirmModal";
 import { showErrorToast, showSuccessToast } from "../utils/toasts";
 
 const MAX_RESTAURANT_IMAGES = Number(KEYS.MAX_RESTAURANT_IMAGES) || 5;
@@ -33,39 +36,8 @@ const RestaurantDetails = () => {
   const [coverDeleteModalOpen, setCoverDeleteModalOpen] = useState(false);
   const [imageDeleteModalOpen, setImageDeleteModalOpen] = useState(false);
   const [imageKeyToDelete, setImageKeyToDelete] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!id) return;
-
-    let cancelled = false;
-
-    const fetchRestaurant = async () => {
-      setLoading(true);
-      try {
-        const res = await RestaurantService.findOne(id);
-        if (res.data.code === EnumStatusResponse.SUCCESS && res.data.data) {
-          setRestaurant(res.data.data);
-        } else {
-          showErrorToast(res.data.message || "Restaurant not found");
-          navigate("/restaurants");
-        }
-      } catch (error) {
-        const err = error as AxiosError<IOrchestrationResult<string>>;
-        showErrorToast(
-          err.response?.data?.message || "Failed to load restaurant",
-        );
-        navigate("/restaurants");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    fetchRestaurant();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [id, navigate]);
+  const [togglingClosed, setTogglingClosed] = useState(false);
+  const [closedModalOpen, setClosedModalOpen] = useState(false);
 
   const validateImageFile = (file: File) => {
     if (file.size > MAX_IMAGE_SIZE_BYTES) {
@@ -167,6 +139,61 @@ const RestaurantDetails = () => {
     }
   };
 
+  useEffect(() => {
+    if (!id) return;
+
+    let cancelled = false;
+
+    const fetchRestaurant = async () => {
+      setLoading(true);
+      try {
+        const res = await RestaurantService.findOne(id);
+        if (res.data.code === EnumStatusResponse.SUCCESS && res.data.data) {
+          setRestaurant(res.data.data);
+        } else {
+          showErrorToast(res.data.message || "Restaurant not found");
+          navigate("/restaurants");
+        }
+      } catch (error) {
+        const err = error as AxiosError<IOrchestrationResult<string>>;
+        showErrorToast(
+          err.response?.data?.message || "Failed to load restaurant",
+        );
+        navigate("/restaurants");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    fetchRestaurant();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, navigate]);
+
+  const handleToggleClosed = async () => {
+    if (!restaurant) return;
+    setTogglingClosed(true);
+    try {
+      const { data } = await RestaurantService.toggleClosed(restaurant.id);
+      if (data.data) {
+        setRestaurant(data.data);
+        showSuccessToast(
+          restaurant.isClosed ? "Restaurant opened" : "Restaurant closed",
+        );
+        setClosedModalOpen(false);
+      }
+    } catch (error) {
+      const err = error as AxiosError<IOrchestrationResult<string>>;
+      showErrorToast(
+        err.response?.data?.message || "Failed to update closed status",
+      );
+    } finally {
+      setTogglingClosed(false);
+    }
+  };
+
   if (loading || !restaurant) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -207,6 +234,20 @@ const RestaurantDetails = () => {
         <h1 className="text-2xl font-bold text-text">Restaurant details</h1>
       </div>
 
+      {restaurant.deleted && (
+        <div className="bg-red-100 border border-red-200 text-red-800 rounded-xl p-4 mb-6 text-sm font-medium flex items-center gap-2">
+          <Trash2 size={18} />
+          This restaurant has been deleted.
+        </div>
+      )}
+
+      {restaurant.isClosed && (
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl p-4 mb-6 text-sm font-medium flex items-center gap-2">
+          <AlertTriangle size={18} />
+          This restaurant is currently closed.
+        </div>
+      )}
+
       <div className="space-y-6">
         <RestaurantCoverSection
           coverImage={restaurant.coverImage}
@@ -232,6 +273,17 @@ const RestaurantDetails = () => {
           restaurant={restaurant}
           onUpdate={setRestaurant}
         />
+
+        <RestaurantClosedSection
+          isClosed={restaurant.isClosed}
+          togglingClosed={togglingClosed}
+          onOpenModal={() => setClosedModalOpen(true)}
+        />
+
+        <RestaurantDeleteRestoreSection
+          restaurant={restaurant}
+          onUpdate={setRestaurant}
+        />
       </div>
 
       <DeleteModal
@@ -251,6 +303,21 @@ const RestaurantDetails = () => {
         confirmText="Remove"
         loading={deletingKey !== null}
         onConfirm={onDeleteImage}
+      />
+
+      <ConfirmModal
+        open={closedModalOpen}
+        setOpen={setClosedModalOpen}
+        title={restaurant.isClosed ? "Open Restaurant" : "Close Restaurant"}
+        description={
+          restaurant.isClosed
+            ? `Are you sure you want to open "${restaurant.name}"?`
+            : `Are you sure you want to close "${restaurant.name}"? Customers will not be able to place orders.`
+        }
+        confirmText={restaurant.isClosed ? "Open" : "Close"}
+        variant={restaurant.isClosed ? "success" : "danger"}
+        loading={togglingClosed}
+        onConfirm={handleToggleClosed}
       />
     </div>
   );

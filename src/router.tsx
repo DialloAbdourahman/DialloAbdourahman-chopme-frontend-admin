@@ -10,6 +10,7 @@ import Home from "./pages/Home";
 import Restaurants from "./pages/Restaurants";
 import CreateRestaurant from "./pages/CreateRestaurant";
 import RestaurantDetails from "./pages/RestaurantDetails";
+import Profile from "./pages/Profile";
 import type { ReactNode } from "react";
 import { useSelector } from "react-redux";
 import type { RootState } from "./store";
@@ -69,6 +70,15 @@ const AppContent = () => {
             element={
               <ProtectedRoute>
                 <RestaurantDetails />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
               </ProtectedRoute>
             }
           />
