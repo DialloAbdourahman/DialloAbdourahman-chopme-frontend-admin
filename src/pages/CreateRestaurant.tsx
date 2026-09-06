@@ -55,6 +55,20 @@ const CreateRestaurant = () => {
         type: "Point",
         coordinates: [0, 0],
       },
+      deliveryPricingKm: [
+        { from: 0, to: 3, price: 800 },
+        { from: 3, to: 7, price: 1500 },
+        { from: 7, to: 15, price: 2500 },
+      ],
+      availability: [
+        { day: "Monday", openTime: "10:00", closeTime: "21:30" },
+        { day: "Tuesday", openTime: "10:00", closeTime: "21:30" },
+        { day: "Wednesday", openTime: "10:00", closeTime: "21:30" },
+        { day: "Thursday", openTime: "10:00", closeTime: "21:30" },
+        { day: "Friday", openTime: "10:00", closeTime: "22:30" },
+        { day: "Saturday", openTime: "09:00", closeTime: "22:30" },
+        { day: "Sunday", openTime: "09:00", closeTime: "20:30" },
+      ],
     },
   });
 
