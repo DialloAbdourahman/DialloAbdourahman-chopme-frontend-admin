@@ -10,8 +10,32 @@ export const RESTAURANT_VISIBLE_ORDER_STATUSES = [
 ];
 
 export const getRestaurantTypes = () => [
+  { title: "Restaurant", type: EnumRestaurantType.RESTAURANT },
   { title: "Fast Food", type: EnumRestaurantType.FAST_FOOD },
+  { title: "Snack", type: EnumRestaurantType.SNACK },
   { title: "Café", type: EnumRestaurantType.CAFE },
+  { title: "Cameroonian", type: EnumRestaurantType.CAMEROONIAN },
+  { title: "African", type: EnumRestaurantType.AFRICAN },
+  { title: "Maquis", type: EnumRestaurantType.MAQUIS },
+  { title: "Gargote", type: EnumRestaurantType.GARGOTE },
+  { title: "Grill", type: EnumRestaurantType.GRILL },
+  { title: "Rotisserie", type: EnumRestaurantType.ROTISSERIE },
+  { title: "Pizzeria", type: EnumRestaurantType.PIZZERIA },
+  { title: "Burger", type: EnumRestaurantType.BURGER },
+  { title: "Shawarma", type: EnumRestaurantType.SHAWARMA },
+  { title: "Chinese", type: EnumRestaurantType.CHINESE },
+  { title: "Indian", type: EnumRestaurantType.INDIAN },
+  { title: "Lebanese", type: EnumRestaurantType.LEBANESE },
+  { title: "French", type: EnumRestaurantType.FRENCH },
+  { title: "Italian", type: EnumRestaurantType.ITALIAN },
+  { title: "Bakery", type: EnumRestaurantType.BAKERY },
+  { title: "Dessert", type: EnumRestaurantType.DESSERT },
+  { title: "Juice Bar", type: EnumRestaurantType.JUICE_BAR },
+  { title: "Bar", type: EnumRestaurantType.BAR },
+  { title: "Lounge", type: EnumRestaurantType.LOUNGE },
+  { title: "Fine Dining", type: EnumRestaurantType.FINE_DINING },
+  { title: "Hotel Restaurant", type: EnumRestaurantType.HOTEL_RESTAURANT },
+  { title: "Home Cook", type: EnumRestaurantType.HOME_COOK },
 ];
 
 export const getOrderStatusLabels = () => [
