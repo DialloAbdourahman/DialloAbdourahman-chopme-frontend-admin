@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { AlertTriangle, ArrowLeft, Loader2, Trash2 } from "lucide-react";
 import { AxiosError } from "axios";
 import {
+  EnumStatusCode,
   EnumStatusResponse,
   type IOrchestrationResult,
   type IRestaurantEntity,
@@ -186,9 +187,17 @@ const RestaurantDetails = () => {
       }
     } catch (error) {
       const err = error as AxiosError<IOrchestrationResult<string>>;
-      showErrorToast(
-        err.response?.data?.message || "Failed to update closed status",
-      );
+      switch (err?.response?.data?.statusCode) {
+        case EnumStatusCode.CANNOT_OPEN_RESTAURANT:
+          showErrorToast(
+            "This restaurant was closed by the restaurant itself and cannot be reopened by an admin.",
+          );
+          break;
+        default:
+          showErrorToast(
+            err.response?.data?.message || "Failed to update closed status",
+          );
+      }
     } finally {
       setTogglingClosed(false);
     }
