@@ -1,7 +1,16 @@
 import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { ChefHat, Home, Utensils, User, LogOut, Menu, X } from "lucide-react";
+import {
+  ChefHat,
+  Home,
+  Utensils,
+  User,
+  Loader2,
+  LogOut,
+  Menu,
+  X,
+} from "lucide-react";
 import { AuthService } from "../services/auth.service";
 import { TokensService } from "../services/tokens.service";
 import { KEYS } from "../utils/keys";
@@ -11,6 +20,7 @@ import type { RootState } from "../store";
 const Navbar = () => {
   const dispatch = useDispatch();
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { user } = useSelector((state: RootState) => state.user);
 
   const navLinks = [
@@ -20,6 +30,7 @@ const Navbar = () => {
   ];
 
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     try {
       const refreshToken = TokensService.getToken(KEYS.REFRESH_TOKEN_KEY);
       await AuthService.logout(refreshToken ?? undefined);
@@ -29,6 +40,8 @@ const Navbar = () => {
       setIsOpen(false);
     } catch (error) {
       console.error("Failed to log out:", error);
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -69,9 +82,14 @@ const Navbar = () => {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 transition-colors hover:text-red-600"
+                disabled={isLoggingOut}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 transition-colors hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <LogOut size={16} />
+                {isLoggingOut ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <LogOut size={16} />
+                )}
                 <span className="hidden lg:inline">Logout</span>
               </button>
             ) : null}
@@ -112,9 +130,14 @@ const Navbar = () => {
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 transition-colors hover:bg-red-100"
+                  disabled={isLoggingOut}
+                  className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 transition-colors hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <LogOut size={17} />
+                  {isLoggingOut ? (
+                    <Loader2 size={17} className="animate-spin" />
+                  ) : (
+                    <LogOut size={17} />
+                  )}
                   Logout
                 </button>
               ) : null}
