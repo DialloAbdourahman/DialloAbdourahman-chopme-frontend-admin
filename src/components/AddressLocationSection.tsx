@@ -189,6 +189,7 @@ const AddressLocationSection: React.FC<AddressLocationSectionProps> = ({
       searchInputRef.current,
       {
         fields: ["address_components", "geometry", "formatted_address"],
+        componentRestrictions: { country: "cm" },
       },
     );
 
