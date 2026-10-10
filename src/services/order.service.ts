@@ -7,6 +7,16 @@ import type {
 import { axiosBaseClient } from "../lib/axios";
 
 export const OrderService = {
+  findAllForAdmin: (params: { page?: number; limit?: number }) => {
+    const searchParams = new URLSearchParams();
+    if (params.page) searchParams.set("page", String(params.page));
+    if (params.limit) searchParams.set("limit", String(params.limit));
+
+    return axiosBaseClient.get<IOrchestrationResult<Pagination<IOrderEntity>>>(
+      `/orders/admin?${searchParams.toString()}`,
+    );
+  },
+
   getRestaurantOrders: (params: {
     status?: string;
     page?: number;

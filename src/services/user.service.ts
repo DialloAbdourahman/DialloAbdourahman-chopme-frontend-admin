@@ -1,6 +1,8 @@
 import type {
+  AdminUsersQueryDto,
   IOrchestrationResult,
   IUserEntity,
+  Pagination,
   UpdatePasswordDto,
   UpdateUserProfileDto,
 } from "chopme-frontend-common";
@@ -18,6 +20,24 @@ export const UserService = {
     return axiosBaseClient.patch<IOrchestrationResult<IUserEntity>>(
       "/users/me/password",
       dto,
+    );
+  },
+
+  findAllForAdmin: ({
+    page,
+    limit,
+    filters,
+  }: {
+    page: number;
+    limit: number;
+    filters: AdminUsersQueryDto;
+  }) => {
+    return axiosBaseClient.post<IOrchestrationResult<Pagination<IUserEntity>>>(
+      "/users/admin",
+      filters,
+      {
+        params: { page, limit },
+      },
     );
   },
 };

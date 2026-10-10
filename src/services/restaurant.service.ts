@@ -7,22 +7,25 @@ import {
   type AdminUpdateRestaurantDto,
   type CreateRestaurantDto,
   type Pagination,
+  type AdminRestaurantsQueryDto,
 } from "chopme-frontend-common";
 import { axiosBaseClient } from "../lib/axios";
 
 export const RestaurantService = {
-  findAllForAdmin: (params: {
-    page?: number;
-    limit?: number;
-    search?: string;
-    type?: string;
-    deleted?: boolean;
-    sortBy?: string;
-    sortOrder?: "asc" | "desc";
+  findAllForAdmin: ({
+    page,
+    limit,
+    filters,
+  }: {
+    page: number;
+    limit: number;
+    filters: AdminRestaurantsQueryDto;
   }) => {
-    return axiosBaseClient.get<
+    return axiosBaseClient.post<
       IOrchestrationResult<Pagination<IRestaurantEntity>>
-    >(`/restaurants/admin`, { params });
+    >("/restaurants/admin", filters, {
+      params: { page, limit },
+    });
   },
 
   findOne: (idOrSlug: string) => {

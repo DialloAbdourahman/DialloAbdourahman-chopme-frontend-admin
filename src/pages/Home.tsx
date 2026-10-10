@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   Utensils,
   Users,
@@ -7,24 +8,60 @@ import {
   ChefHat,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { RestaurantService } from "../services/restaurant.service";
+import { OrderService } from "../services/order.service";
+import { UserService } from "../services/user.service";
 
 const Home = () => {
+  const [totals, setTotals] = useState<{
+    restaurants?: number;
+    users?: number;
+    orders?: number;
+  }>({});
+
+  useEffect(() => {
+    const fetchTotals = async () => {
+      const [restaurantsRes, usersRes, ordersRes] = await Promise.allSettled([
+        RestaurantService.findAllForAdmin({ page: 1, limit: 1, filters: {} }),
+        UserService.findAllForAdmin({ page: 1, limit: 1, filters: {} }),
+        OrderService.findAllForAdmin({ page: 1, limit: 1 }),
+      ]);
+
+      setTotals({
+        restaurants:
+          restaurantsRes.status === "fulfilled"
+            ? restaurantsRes.value.data.data?.totalItems
+            : undefined,
+        users:
+          usersRes.status === "fulfilled"
+            ? usersRes.value.data.data?.totalItems
+            : undefined,
+        orders:
+          ordersRes.status === "fulfilled"
+            ? ordersRes.value.data.data?.totalItems
+            : undefined,
+      });
+    };
+
+    fetchTotals();
+  }, []);
+
   const statCards = [
     {
       label: "Total Restaurants",
-      value: "—",
+      value: totals.restaurants?.toLocaleString() ?? "—",
       icon: Utensils,
       color: "bg-primary/10 text-primary",
     },
     {
       label: "Total Users",
-      value: "—",
+      value: totals.users?.toLocaleString() ?? "—",
       icon: Users,
       color: "bg-blue-100 text-blue-600",
     },
     {
       label: "Total Orders",
-      value: "—",
+      value: totals.orders?.toLocaleString() ?? "—",
       icon: ShoppingBag,
       color: "bg-green-100 text-green-600",
     },
@@ -42,6 +79,12 @@ const Home = () => {
       description: "View, search, and manage all restaurants",
       href: "/restaurants",
       icon: Utensils,
+    },
+    {
+      label: "Manage Users",
+      description: "View, search, and manage all users",
+      href: "/users",
+      icon: Users,
     },
   ];
 

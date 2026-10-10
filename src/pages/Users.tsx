@@ -1,34 +1,51 @@
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
-  Eye,
+  Check,
+  Copy,
+  Power,
+  RefreshCw,
   Search,
   Trash2,
-  Star,
-  Copy,
-  Check,
+  Users as UsersIcon,
   X,
-  RefreshCw,
-  Utensils,
-  Plus,
 } from "lucide-react";
-import { RestaurantService } from "../services/restaurant.service";
 import {
-  EnumRestaurantType,
-  type AdminRestaurantsQueryDto,
-  type IRestaurantEntity,
+  EnumAuthType,
+  EnumUserRole,
+  type AdminUsersQueryDto,
+  type IUserEntity,
 } from "chopme-frontend-common";
 import Pagination from "../components/Pagination";
-import ConfirmModal from "../components/ConfirmModal";
-import { getRestaurantTypes } from "../utils/constants";
+import { UserService } from "../services/user.service";
 
-const parseFilters = (value: string | null): AdminRestaurantsQueryDto => {
+const formatDateForInput = (date?: Date) => {
+  if (!date) return "";
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const parseFilters = (value: string | null): AdminUsersQueryDto => {
   if (!value) return {};
   try {
-    return JSON.parse(value) as AdminRestaurantsQueryDto;
+    const parsed = JSON.parse(value) as AdminUsersQueryDto;
+    if (parsed.dateFrom) parsed.dateFrom = new Date(parsed.dateFrom);
+    if (parsed.dateTo) parsed.dateTo = new Date(parsed.dateTo);
+    return parsed;
   } catch {
     return {};
   }
+};
+
+const formatEnumLabel = (value?: string) => {
+  if (!value) return "";
+  return value
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
 const formatDate = (value?: string | Date) => {
@@ -40,24 +57,20 @@ const formatDate = (value?: string | Date) => {
   return `${day}/${month}/${year}`;
 };
 
-const Restaurants = () => {
+const Users = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [restaurants, setRestaurants] = useState<IRestaurantEntity[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<IUserEntity[]>([]);
+  const [loading, setLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(0);
-  const [totalRestaurants, setTotalRestaurants] = useState(0);
+  const [totalUsers, setTotalUsers] = useState(0);
 
   const [page, setPage] = useState(Number(searchParams.get("page")) || 1);
   const [limit, setLimit] = useState(Number(searchParams.get("limit")) || 10);
-  const [filters, setFilters] = useState<AdminRestaurantsQueryDto>(
+  const [filters, setFilters] = useState<AdminUsersQueryDto>(
     parseFilters(searchParams.get("filter")),
   );
   const [search, setSearch] = useState(filters.search ?? "");
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [deletingRestaurant, setDeletingRestaurant] =
-    useState<IRestaurantEntity | null>(null);
-  const [deleting, setDeleting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const handleCopyId = async (id: string) => {
@@ -68,6 +81,23 @@ const Restaurants = () => {
 
   const getIdInitials = (id: string) => {
     return id.slice(0, 8);
+  };
+
+  const handleDelete = (user: IUserEntity) => {
+    if (!window.confirm(`Are you sure you want to delete ${user.fullName}?`)) {
+      return;
+    }
+    console.log("Delete user:", user.id);
+  };
+
+  const handleDeactivate = (user: IUserEntity) => {
+    const action = user.active ? "deactivate" : "activate";
+    if (
+      !window.confirm(`Are you sure you want to ${action} ${user.fullName}?`)
+    ) {
+      return;
+    }
+    console.log(`${action} user:`, user.id);
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -86,9 +116,9 @@ const Restaurants = () => {
     setPage(1);
   };
 
-  const handleFilterChange = <K extends keyof AdminRestaurantsQueryDto>(
+  const handleFilterChange = <K extends keyof AdminUsersQueryDto>(
     key: K,
-    value: AdminRestaurantsQueryDto[K],
+    value: AdminUsersQueryDto[K],
   ) => {
     setPage(1);
     setFilters((prev) => ({
@@ -97,55 +127,21 @@ const Restaurants = () => {
     }));
   };
 
-  const handleDelete = async () => {
-    if (!deletingRestaurant) return;
-    setDeleting(true);
-    try {
-      await RestaurantService.delete(deletingRestaurant.id);
-      setRestaurants((prev) =>
-        prev.filter((r) => r.id !== deletingRestaurant.id),
-      );
-      setDeleteModalOpen(false);
-    } catch (error) {
-      console.error("Failed to delete restaurant:", error);
-    } finally {
-      setDeleting(false);
-      setDeletingRestaurant(null);
-    }
-  };
-
-  const handleRestore = async () => {
-    if (!deletingRestaurant) return;
-    setDeleting(true);
-    try {
-      await RestaurantService.restore(deletingRestaurant.id);
-      setRestaurants((prev) =>
-        prev.filter((r) => r.id !== deletingRestaurant.id),
-      );
-      setDeleteModalOpen(false);
-    } catch (error) {
-      console.error("Failed to restore restaurant:", error);
-    } finally {
-      setDeleting(false);
-      setDeletingRestaurant(null);
-    }
-  };
-
-  const fetchRestaurants = async () => {
+  const fetchUsers = async () => {
     setLoading(true);
     try {
-      const { data } = await RestaurantService.findAllForAdmin({
+      const result = await UserService.findAllForAdmin({
         page,
         limit,
         filters,
       });
-      if (data.code === "SUCCESS" && data.data) {
-        setRestaurants(data.data.items);
-        setTotalPages(data.data.totalPages);
-        setTotalRestaurants(data.data.totalItems);
+      if (result.data.data) {
+        setUsers(result.data.data.items);
+        setTotalPages(result.data.data.totalPages);
+        setTotalUsers(result.data.data.totalItems);
       }
     } catch (error) {
-      console.error("Failed to fetch restaurants:", error);
+      console.error("Failed to fetch users:", error);
     } finally {
       setLoading(false);
     }
@@ -161,31 +157,24 @@ const Restaurants = () => {
     }
     setSearchParams(params, { replace: true });
 
-    fetchRestaurants();
+    fetchUsers();
   }, [page, limit, filters, setSearchParams]);
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-text">Restaurants</h1>
-        <div className="flex items-center gap-4">
+        <h1 className="text-2xl font-bold text-text">Users</h1>
+        <div className="flex items-center gap-3">
           <span className="text-sm font-medium text-gray-500">
-            {totalRestaurants.toLocaleString()} restaurants
+            {totalUsers.toLocaleString()} users
           </span>
           <button
-            onClick={fetchRestaurants}
+            onClick={fetchUsers}
             className="p-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors"
             title="Refresh"
           >
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           </button>
-          <Link
-            to="/restaurants/create"
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
-          >
-            <Plus size={18} />
-            Create restaurant
-          </Link>
         </div>
       </div>
 
@@ -207,7 +196,7 @@ const Restaurants = () => {
                   />
                   <input
                     type="text"
-                    placeholder="Search restaurants..."
+                    placeholder="Search users..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="w-full pl-9 pr-3 py-2 rounded-xl border border-border bg-background text-sm text-text placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
@@ -228,11 +217,11 @@ const Restaurants = () => {
               </label>
               <select
                 value={
-                  filters.isClosed === undefined ? "" : String(filters.isClosed)
+                  filters.active === undefined ? "" : String(filters.active)
                 }
                 onChange={(e) =>
                   handleFilterChange(
-                    "isClosed",
+                    "active",
                     e.target.value === ""
                       ? undefined
                       : e.target.value === "true",
@@ -241,8 +230,8 @@ const Restaurants = () => {
                 className="px-3 py-2 rounded-xl border border-border bg-background text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               >
                 <option value="">All Status</option>
-                <option value="false">Open</option>
-                <option value="true">Closed</option>
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
               </select>
             </div>
             <div className="flex flex-col gap-1">
@@ -274,26 +263,79 @@ const Restaurants = () => {
 
           <div className="flex flex-col sm:flex-row gap-3 flex-wrap items-end">
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-500 font-medium">Type</label>
+              <label className="text-xs text-gray-500 font-medium">Role</label>
               <select
-                value={filters.type ?? ""}
+                value={filters.role ?? ""}
                 onChange={(e) =>
                   handleFilterChange(
-                    "type",
+                    "role",
                     e.target.value
-                      ? (e.target.value as EnumRestaurantType)
+                      ? (e.target.value as EnumUserRole)
                       : undefined,
                   )
                 }
                 className="px-3 py-2 rounded-xl border border-border bg-background text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               >
-                <option value="">All Types</option>
-                {getRestaurantTypes().map((rt) => (
-                  <option key={rt.type} value={rt.type}>
-                    {rt.title}
+                <option value="">All Roles</option>
+                {Object.values(EnumUserRole).map((r) => (
+                  <option key={r} value={r}>
+                    {formatEnumLabel(r)}
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-500 font-medium">
+                Auth Type
+              </label>
+              <select
+                value={filters.authType ?? ""}
+                onChange={(e) =>
+                  handleFilterChange(
+                    "authType",
+                    e.target.value
+                      ? (e.target.value as EnumAuthType)
+                      : undefined,
+                  )
+                }
+                className="px-3 py-2 rounded-xl border border-border bg-background text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              >
+                <option value="">All Auth Types</option>
+                {Object.values(EnumAuthType).map((t) => (
+                  <option key={t} value={t}>
+                    {formatEnumLabel(t)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="hidden sm:block w-px bg-border self-stretch mx-2" />
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-500 font-medium">From</label>
+              <input
+                type="date"
+                value={formatDateForInput(filters.dateFrom)}
+                onChange={(e) =>
+                  handleFilterChange(
+                    "dateFrom",
+                    e.target.value ? new Date(e.target.value) : undefined,
+                  )
+                }
+                className="px-3 py-2 rounded-xl border border-border bg-background text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-500 font-medium">To</label>
+              <input
+                type="date"
+                value={formatDateForInput(filters.dateTo)}
+                onChange={(e) =>
+                  handleFilterChange(
+                    "dateTo",
+                    e.target.value ? new Date(e.target.value) : undefined,
+                  )
+                }
+                className="px-3 py-2 rounded-xl border border-border bg-background text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              />
             </div>
             <div className="hidden sm:block w-px bg-border self-stretch mx-2" />
             <div className="flex flex-col gap-1">
@@ -302,31 +344,37 @@ const Restaurants = () => {
               </label>
               <select
                 value={filters.sortBy ?? "createdAt"}
-                onChange={(e) => handleFilterChange("sortBy", e.target.value)}
+                onChange={(e) =>
+                  handleFilterChange(
+                    "sortBy",
+                    e.target.value as
+                      | "createdAt"
+                      | "lastLoginAt"
+                      | "lastTokenRefreshedAt",
+                  )
+                }
                 className="px-3 py-2 rounded-xl border border-border bg-background text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               >
                 <option value="createdAt">Created At</option>
-                <option value="rating.average">Rating</option>
-                <option value="totalViews">Views</option>
+                <option value="lastLoginAt">Last Login</option>
+                <option value="lastTokenRefreshedAt">
+                  Last Token Refreshed
+                </option>
               </select>
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs text-gray-500 font-medium">Order</label>
               <select
-                value={filters.sortOrder ?? "desc"}
+                value={filters.sort ?? "desc"}
                 onChange={(e) =>
-                  handleFilterChange(
-                    "sortOrder",
-                    e.target.value as "asc" | "desc",
-                  )
+                  handleFilterChange("sort", e.target.value as "asc" | "desc")
                 }
                 className="px-3 py-2 rounded-xl border border-border bg-background text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               >
-                <option value="desc">Descending</option>
-                <option value="asc">Ascending</option>
+                <option value="desc">Newest</option>
+                <option value="asc">Oldest</option>
               </select>
             </div>
-            <div className="hidden sm:block w-px bg-border self-stretch mx-2" />
             <div className="flex flex-col gap-1">
               <label className="text-xs text-gray-500 font-medium">
                 Per Page
@@ -365,13 +413,13 @@ const Restaurants = () => {
           <div className="text-center py-16">
             <div className="inline-flex items-center gap-2 text-gray-400">
               <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-              <span className="text-sm">Loading restaurants...</span>
+              <span className="text-sm">Loading users...</span>
             </div>
           </div>
-        ) : restaurants.length === 0 ? (
+        ) : users.length === 0 ? (
           <div className="text-center py-16">
-            <Utensils size={32} className="mx-auto text-gray-300 mb-3" />
-            <p className="text-sm text-gray-400">No restaurants found</p>
+            <UsersIcon size={32} className="mx-auto text-gray-300 mb-3" />
+            <p className="text-sm text-gray-400">No users found</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -382,25 +430,19 @@ const Restaurants = () => {
                     ID
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-text">
-                    Name
+                    Full Name
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-text">
                     Email
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-text">
-                    Phone
+                    Role
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-text">
-                    Type
+                    Auth Type
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-text">
-                    Rating
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-text">
-                    Views
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-text">
-                    Status
+                    Active
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-text">
                     Created At
@@ -408,28 +450,27 @@ const Restaurants = () => {
                   <th className="text-left py-3 px-4 text-sm font-semibold text-text">
                     Deleted
                   </th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-text">
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-text">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {restaurants.map((restaurant) => (
+                {users.map((user) => (
                   <tr
-                    key={restaurant.id}
+                    key={user.id}
                     className="border-b border-border/50 hover:bg-muted/50 transition-colors"
                   >
                     <td className="py-3 px-4 text-sm text-text">
                       <div
                         className="group relative inline-flex items-center gap-1 cursor-pointer"
-                        onClick={() => handleCopyId(restaurant.id)}
+                        onClick={() => handleCopyId(user.id)}
                         title="Click to copy ID"
                       >
                         <span className="font-mono text-xs">
-                          {getIdInitials(restaurant.id)}
+                          {getIdInitials(user.id)}
                         </span>
-
-                        {copiedId === restaurant.id ? (
+                        {copiedId === user.id ? (
                           <Check size={12} className="text-green-500" />
                         ) : (
                           <Copy
@@ -440,58 +481,35 @@ const Restaurants = () => {
                       </div>
                     </td>
                     <td className="py-3 px-4 text-sm text-text">
-                      <Link
-                        to={`/restaurants/${restaurant.id}`}
-                        className="hover:text-primary hover:underline"
-                      >
-                        {restaurant.name}
-                      </Link>
+                      {user.fullName}
                     </td>
                     <td className="py-3 px-4 text-sm text-text">
-                      {restaurant.email}
-                    </td>
-                    <td className="py-3 px-4 text-sm text-text">
-                      {restaurant.phone}
+                      {user.email}
                     </td>
                     <td className="py-3 px-4 text-sm text-text">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                        {getRestaurantTypes().find(
-                          (t) => t.type === restaurant.type,
-                        )?.title || restaurant.type}
+                        {formatEnumLabel(user.role)}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-sm text-text">
-                      <div className="flex items-center gap-1">
-                        <Star
-                          size={14}
-                          className="text-yellow-500 fill-yellow-500"
-                        />
-                        <span>
-                          {restaurant.rating?.average?.toFixed(1) || "N/A"}
-                        </span>
-                      </div>
+                      {formatEnumLabel(user.authType)}
                     </td>
                     <td className="py-3 px-4 text-sm text-text">
-                      {restaurant.totalViews ?? 0}
-                    </td>
-                    <td className="py-3 px-4 text-sm text-text">
-                      {restaurant.isClosed ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-600">
-                          <X size={12} />
-                          Closed
+                      {user.active ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-600">
+                          Active
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-600">
-                          <Check size={12} />
-                          Open
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-600">
+                          Inactive
                         </span>
                       )}
                     </td>
                     <td className="py-3 px-4 text-sm text-text">
-                      {formatDate(restaurant.createdAt)}
+                      {formatDate(user.createdAt)}
                     </td>
                     <td className="py-3 px-4 text-sm text-text">
-                      {restaurant.deleted ? (
+                      {user.deleted ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-600 animate-bounce">
                           <X size={12} />
                           Yes
@@ -500,40 +518,25 @@ const Restaurants = () => {
                         <span className="text-gray-400">No</span>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link
-                          to={`/restaurants/${restaurant.id}`}
-                          target="_blank"
-                          className="p-2 rounded-lg bg-background hover:bg-gray-100 text-text transition-colors"
-                          title="View"
-                        >
-                          <Eye size={16} />
-                        </Link>
-                        {restaurant.deleted ? (
+                    <td className="py-3 px-4 text-sm text-text">
+                      {user.role !== EnumUserRole.ADMIN && (
+                        <div className="flex items-center gap-2">
                           <button
-                            onClick={() => {
-                              setDeletingRestaurant(restaurant);
-                              setDeleteModalOpen(true);
-                            }}
-                            className="p-2 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 transition-colors"
-                            title="Restore"
+                            onClick={() => handleDeactivate(user)}
+                            title={user.active ? "Deactivate" : "Activate"}
+                            className="p-1.5 rounded-lg bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition-colors"
                           >
-                            <RefreshCw size={16} />
+                            <Power size={16} />
                           </button>
-                        ) : (
                           <button
-                            onClick={() => {
-                              setDeletingRestaurant(restaurant);
-                              setDeleteModalOpen(true);
-                            }}
-                            className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors"
+                            onClick={() => handleDelete(user)}
                             title="Delete"
+                            className="p-1.5 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
                           >
                             <Trash2 size={16} />
                           </button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -548,27 +551,8 @@ const Restaurants = () => {
           onPageChange={setPage}
         />
       </div>
-
-      <ConfirmModal
-        open={deleteModalOpen}
-        setOpen={setDeleteModalOpen}
-        title={
-          deletingRestaurant?.deleted
-            ? "Restore Restaurant"
-            : "Delete Restaurant"
-        }
-        description={
-          deletingRestaurant?.deleted
-            ? `Are you sure you want to restore "${deletingRestaurant?.name}"?`
-            : `Are you sure you want to delete "${deletingRestaurant?.name}"? This action cannot be undone.`
-        }
-        confirmText={deletingRestaurant?.deleted ? "Restore" : "Delete"}
-        variant={deletingRestaurant?.deleted ? "success" : "danger"}
-        loading={deleting}
-        onConfirm={deletingRestaurant?.deleted ? handleRestore : handleDelete}
-      />
     </div>
   );
 };
 
-export default Restaurants;
+export default Users;

@@ -6,6 +6,7 @@ import {
   Home,
   Utensils,
   User,
+  Users,
   Loader2,
   LogOut,
   Menu,
@@ -26,6 +27,7 @@ const Navbar = () => {
   const navLinks = [
     { label: "Home", href: "/", icon: Home },
     { label: "Restaurants", href: "/restaurants", icon: Utensils },
+    { label: "Users", href: "/users", icon: Users },
     { label: "Profile", href: "/profile", icon: User },
   ];
 
