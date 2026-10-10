@@ -8,6 +8,7 @@ import {
 import Signin from "./pages/Signin";
 import Home from "./pages/Home";
 import Restaurants from "./pages/Restaurants";
+import Users from "./pages/Users";
 import CreateRestaurant from "./pages/CreateRestaurant";
 import RestaurantDetails from "./pages/RestaurantDetails";
 import Profile from "./pages/Profile";
@@ -54,6 +55,14 @@ const AppContent = () => {
             element={
               <ProtectedRoute>
                 <Restaurants />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/users"
+            element={
+              <ProtectedRoute>
+                <Users />
               </ProtectedRoute>
             }
           />
