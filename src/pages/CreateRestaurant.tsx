@@ -315,7 +315,7 @@ const CreateRestaurant = () => {
                     setValueAs: (v: string) => (v ? `+237${v}` : ""),
                   })}
                   type="tel"
-                  placeholder="620487789"
+                  placeholder="677885522"
                   className={`${inputClass} pl-12`}
                 />
               </div>
