@@ -118,12 +118,8 @@ const Transfers = () => {
     (state: RootState) => state.notification,
   );
 
-  useEffect(() => {
-    if (
-      newNotification?.type === EnumNotificationType.TRANSFER_STATUS_CHANGED
-    ) {
-      const updated = newNotification.data as ITransferEntity;
-
+  const applyTransferUpdate = useCallback(
+    (updated: ITransferEntity) => {
       setTransfers((prev) => {
         const matchesFilters =
           (!statusFilter || updated.status === statusFilter) &&
@@ -139,8 +135,17 @@ const Transfers = () => {
         }
         return next;
       });
+    },
+    [statusFilter, directionFilter],
+  );
+
+  useEffect(() => {
+    if (
+      newNotification?.type === EnumNotificationType.TRANSFER_STATUS_CHANGED
+    ) {
+      applyTransferUpdate(newNotification.data as ITransferEntity);
     }
-  }, [newNotification]);
+  }, [newNotification, applyTransferUpdate]);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<{
@@ -154,7 +159,9 @@ const Transfers = () => {
       const { data } = await TransferService.startTransfer(transfer.id);
       if (data.code === EnumStatusResponse.SUCCESS) {
         showSuccessToast(data.message ?? "Transfer started");
-        fetchTransfers();
+        if (data.data) {
+          applyTransferUpdate(data.data);
+        }
       } else {
         showErrorToast(data.message ?? "Unable to start transfer");
       }
@@ -173,7 +180,9 @@ const Transfers = () => {
       const { data } = await TransferService.retryTransfer(transfer.id);
       if (data.code === EnumStatusResponse.SUCCESS) {
         showSuccessToast(data.message ?? "Transfer retried");
-        fetchTransfers();
+        if (data.data) {
+          applyTransferUpdate(data.data);
+        }
       } else {
         showErrorToast(data.message ?? "Unable to retry transfer");
       }
