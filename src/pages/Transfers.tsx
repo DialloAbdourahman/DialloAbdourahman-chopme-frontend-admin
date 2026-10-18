@@ -121,9 +121,25 @@ const Transfers = () => {
     if (
       newNotification?.type === EnumNotificationType.TRANSFER_STATUS_CHANGED
     ) {
-      fetchTransfers();
+      const updated = newNotification.data as ITransferEntity;
+
+      setTransfers((prev) => {
+        const matchesFilters =
+          (!statusFilter || updated.status === statusFilter) &&
+          (!directionFilter || updated.transferDirection === directionFilter);
+        const existed = prev.some((item) => item.id === updated.id);
+        const next = prev
+          .filter((item) => item.id !== updated.retriedFromTransferId)
+          .flatMap((item) =>
+            item.id === updated.id ? (matchesFilters ? [updated] : []) : [item],
+          );
+        if (!existed && matchesFilters) {
+          next.unshift(updated);
+        }
+        return next;
+      });
     }
-  }, [newNotification, fetchTransfers]);
+  }, [newNotification]);
 
   const handleStart = async (transfer: ITransferEntity) => {
     setActionLoading(transfer.id);
