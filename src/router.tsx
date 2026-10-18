@@ -19,6 +19,7 @@ import WebSocket from "./components/WebSocket";
 import Footer from "./components/Footer";
 import { EnumUserRole } from "chopme-frontend-common";
 import Navbar from "./components/Navbar";
+import Transfers from "./pages/Transfers";
 
 const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { user } = useSelector((state: RootState) => state.user);
@@ -79,6 +80,15 @@ const AppContent = () => {
             element={
               <ProtectedRoute>
                 <RestaurantDetails />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/transfers"
+            element={
+              <ProtectedRoute>
+                <Transfers />
               </ProtectedRoute>
             }
           />

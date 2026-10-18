@@ -3,20 +3,29 @@ import { KEYS } from "../utils/keys";
 import { TokensService } from "../services/tokens.service";
 import type { RootState } from "../store";
 import {
+  EnumNotificationType,
+  EnumTransferStatuses,
   EnumWebSocketEventType,
   playNotificationSound,
   type INotification,
+  type ITransferEntity,
 } from "chopme-frontend-common";
 import { useDispatch } from "react-redux";
 import { useSelector } from "react-redux";
 import { setNewNotification } from "../store/notification.slice";
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  showErrorToast,
+  showInfoToast,
+  showSuccessToast,
+} from "../utils/toasts";
 
 const WebSocket = () => {
   const { user } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
 
-  // const navigate = useNavigate();
+  const navigate = useNavigate();
 
   const handleReceivedNotification = (newNotification: INotification<any>) => {
     dispatch(setNewNotification(newNotification));
@@ -36,6 +45,49 @@ const WebSocket = () => {
     //       break;
     //   }
     // }
+
+    if (newNotification.type === EnumNotificationType.TRANSFER_STATUS_CHANGED) {
+      const notification = newNotification as INotification<ITransferEntity>;
+      switch (notification.data.status) {
+        case EnumTransferStatuses.CREATED:
+          showInfoToast("Transfer created", {
+            onClick: () => {
+              navigate("/transfers");
+            },
+          });
+          break;
+        case EnumTransferStatuses.INITIATED:
+          showInfoToast("Transfer is being processed", {
+            onClick: () => {
+              navigate("/transfers");
+            },
+          });
+          break;
+        case EnumTransferStatuses.FAILED_TO_INITIATE:
+          showErrorToast("Transfer could not be initiated", {
+            onClick: () => {
+              navigate("/transfers");
+            },
+          });
+          break;
+        case EnumTransferStatuses.COMPLETED:
+          showSuccessToast("Transfer completed", {
+            onClick: () => {
+              navigate("/transfers");
+            },
+          });
+          break;
+        case EnumTransferStatuses.FAILED:
+          showErrorToast("Transfer failed", {
+            onClick: () => {
+              navigate("/transfers");
+            },
+          });
+          break;
+        default:
+          break;
+      }
+    }
   };
 
   useEffect(() => {
@@ -63,7 +115,7 @@ const WebSocket = () => {
     });
 
     socket.on(
-      EnumWebSocketEventType.RESTAURANT_APPLICATION,
+      EnumWebSocketEventType.ADMIN_APPLICATION,
       (data: INotification<any>) => {
         handleReceivedNotification(data);
       },

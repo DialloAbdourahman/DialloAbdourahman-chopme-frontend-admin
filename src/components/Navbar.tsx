@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import {
+  ArrowRightLeft,
   ChefHat,
   Home,
   Utensils,
@@ -28,6 +29,7 @@ const Navbar = () => {
     { label: "Home", href: "/", icon: Home },
     { label: "Restaurants", href: "/restaurants", icon: Utensils },
     { label: "Users", href: "/users", icon: Users },
+    { label: "Transfers", href: "/transfers", icon: ArrowRightLeft },
     { label: "Profile", href: "/profile", icon: User },
   ];
 
