@@ -18,6 +18,7 @@ import {
 } from "chopme-frontend-common";
 import { useSelector } from "react-redux";
 import type { RootState } from "../store";
+import ConfirmModal from "../components/ConfirmModal";
 import Pagination from "../components/Pagination";
 import { TransferService } from "../services/transfer.service";
 import { ComputeUtils } from "../utils/compute-utils";
@@ -141,6 +142,12 @@ const Transfers = () => {
     }
   }, [newNotification]);
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{
+    type: "start" | "retry";
+    transfer: ITransferEntity;
+  } | null>(null);
+
   const handleStart = async (transfer: ITransferEntity) => {
     setActionLoading(transfer.id);
     try {
@@ -155,6 +162,8 @@ const Transfers = () => {
       showErrorToast("Something went wrong");
     } finally {
       setActionLoading(null);
+      setConfirmOpen(false);
+      setPendingAction(null);
     }
   };
 
@@ -172,6 +181,8 @@ const Transfers = () => {
       showErrorToast("Something went wrong");
     } finally {
       setActionLoading(null);
+      setConfirmOpen(false);
+      setPendingAction(null);
     }
   };
 
@@ -378,11 +389,13 @@ const Transfers = () => {
                         ) : (
                           (canStart || canRetry) && (
                             <button
-                              onClick={() =>
-                                canStart
-                                  ? handleStart(transfer)
-                                  : handleRetry(transfer)
-                              }
+                              onClick={() => {
+                                setPendingAction({
+                                  type: canStart ? "start" : "retry",
+                                  transfer,
+                                });
+                                setConfirmOpen(true);
+                              }}
                               disabled={busy}
                               title={
                                 canStart ? "Start transfer" : "Retry transfer"
@@ -418,6 +431,34 @@ const Transfers = () => {
           onPageChange={setPage}
         />
       </div>
+
+      <ConfirmModal
+        open={confirmOpen}
+        setOpen={setConfirmOpen}
+        title={
+          pendingAction?.type === "start"
+            ? "Start transfer?"
+            : "Retry transfer?"
+        }
+        description={
+          pendingAction
+            ? `${pendingAction.type === "start" ? "Start" : "Retry"} a ${pendingAction.transfer.amount?.toLocaleString()} FCFA transfer${
+                pendingAction.transfer.restaurant?.name
+                  ? ` to ${pendingAction.transfer.restaurant.name}`
+                  : ""
+              }.`
+            : undefined
+        }
+        confirmText={pendingAction?.type === "start" ? "Start" : "Retry"}
+        loading={!!pendingAction && actionLoading === pendingAction.transfer.id}
+        onConfirm={() => {
+          if (pendingAction?.type === "start") {
+            handleStart(pendingAction.transfer);
+          } else if (pendingAction?.type === "retry") {
+            handleRetry(pendingAction.transfer);
+          }
+        }}
+      />
     </div>
   );
 };
