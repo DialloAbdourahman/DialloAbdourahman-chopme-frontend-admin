@@ -4,10 +4,12 @@ import { TokensService } from "../services/tokens.service";
 import type { RootState } from "../store";
 import {
   EnumNotificationType,
+  EnumRefundStatus,
   EnumTransferStatuses,
   EnumWebSocketEventType,
   playNotificationSound,
   type INotification,
+  type IRefundEntity,
   type ITransferEntity,
 } from "chopme-frontend-common";
 import { useDispatch } from "react-redux";
@@ -81,6 +83,49 @@ const WebSocket = () => {
           showErrorToast("Transfer failed", {
             onClick: () => {
               navigate("/transfers");
+            },
+          });
+          break;
+        default:
+          break;
+      }
+    }
+
+    if (newNotification.type === EnumNotificationType.REFUND_STATUS_CHANGED) {
+      const notification = newNotification as INotification<IRefundEntity>;
+      switch (notification.data.status) {
+        case EnumRefundStatus.CREATED:
+          showInfoToast("Refund created", {
+            onClick: () => {
+              navigate("/refunds");
+            },
+          });
+          break;
+        case EnumRefundStatus.FAILED_TO_INITIATE:
+          showErrorToast("Refund could not be initiated", {
+            onClick: () => {
+              navigate("/refunds");
+            },
+          });
+          break;
+        case EnumRefundStatus.INITIATED:
+          showInfoToast("Refund is being processed", {
+            onClick: () => {
+              navigate("/refunds");
+            },
+          });
+          break;
+        case EnumRefundStatus.SUCCESSFUL:
+          showSuccessToast("Refund completed", {
+            onClick: () => {
+              navigate("/refunds");
+            },
+          });
+          break;
+        case EnumRefundStatus.FAILED:
+          showErrorToast("Refund failed", {
+            onClick: () => {
+              navigate("/refunds");
             },
           });
           break;
