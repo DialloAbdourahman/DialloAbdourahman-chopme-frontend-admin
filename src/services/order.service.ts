@@ -1,7 +1,9 @@
 import type {
   EnumOrderStatus,
+  EnumRefundStatus,
   IOrchestrationResult,
   IOrderEntity,
+  IRefundEntity,
   Pagination,
 } from "chopme-frontend-common";
 import { axiosBaseClient } from "../lib/axios";
@@ -48,6 +50,21 @@ export const OrderService = {
 
     return axiosBaseClient.get<IOrchestrationResult<{ total: number }>>(
       `/orders/restaurant-orders/sum-amount?${searchParams.toString()}`,
+    );
+  },
+
+  findAllRefundsForAdmin: (params: {
+    page?: number;
+    limit?: number;
+    status?: EnumRefundStatus;
+  }) => {
+    const searchParams = new URLSearchParams();
+    if (params.page) searchParams.set("page", String(params.page));
+    if (params.limit) searchParams.set("limit", String(params.limit));
+    if (params.status) searchParams.set("status", params.status);
+
+    return axiosBaseClient.get<IOrchestrationResult<Pagination<IRefundEntity>>>(
+      `/orders/admin/refunds?${searchParams.toString()}`,
     );
   },
 

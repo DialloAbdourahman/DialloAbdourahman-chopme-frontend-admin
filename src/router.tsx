@@ -20,6 +20,7 @@ import Footer from "./components/Footer";
 import { EnumUserRole } from "chopme-frontend-common";
 import Navbar from "./components/Navbar";
 import Transfers from "./pages/Transfers";
+import Refunds from "./pages/Refunds";
 
 const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { user } = useSelector((state: RootState) => state.user);
@@ -89,6 +90,15 @@ const AppContent = () => {
             element={
               <ProtectedRoute>
                 <Transfers />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/refunds"
+            element={
+              <ProtectedRoute>
+                <Refunds />
               </ProtectedRoute>
             }
           />

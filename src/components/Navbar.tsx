@@ -11,6 +11,7 @@ import {
   Loader2,
   LogOut,
   Menu,
+  Undo2,
   X,
 } from "lucide-react";
 import { AuthService } from "../services/auth.service";
@@ -30,6 +31,7 @@ const Navbar = () => {
     { label: "Restaurants", href: "/restaurants", icon: Utensils },
     { label: "Users", href: "/users", icon: Users },
     { label: "Transfers", href: "/transfers", icon: ArrowRightLeft },
+    { label: "Refunds", href: "/refunds", icon: Undo2 },
     { label: "Profile", href: "/profile", icon: User },
   ];
 

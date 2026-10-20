@@ -15,6 +15,7 @@ import {
   EnumTransferStatuses,
   EnumTranzakTopupStatus,
   type ITransferEntity,
+  type ITransferGroupEntity,
 } from "chopme-frontend-common";
 import { useSelector } from "react-redux";
 import type { RootState } from "../store";
@@ -147,9 +148,23 @@ const Transfers = () => {
     }
   }, [newNotification, applyTransferUpdate]);
 
+  const applyTransferGroupUpdate = useCallback(
+    (group: ITransferGroupEntity) => {
+      setTransfers((prev) =>
+        prev.map((item) =>
+          item.transferGroupId === group.id ||
+          item.transferGroup?.id === group.id
+            ? { ...item, transferGroup: group }
+            : item,
+        ),
+      );
+    },
+    [],
+  );
+
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<{
-    type: "start" | "retry";
+    type: "start" | "retry" | "topup";
     transfer: ITransferEntity;
   } | null>(null);
 
@@ -164,6 +179,36 @@ const Transfers = () => {
         }
       } else {
         showErrorToast(data.message ?? "Unable to start transfer");
+      }
+    } catch {
+      showErrorToast("Something went wrong");
+    } finally {
+      setActionLoading(null);
+      setConfirmOpen(false);
+      setPendingAction(null);
+    }
+  };
+
+  const handleEnsureTopup = async (transfer: ITransferEntity) => {
+    const transferGroupId =
+      transfer.transferGroup?.id ?? transfer.transferGroupId;
+    if (!transferGroupId) {
+      showErrorToast("No transfer group on this transfer");
+      setConfirmOpen(false);
+      setPendingAction(null);
+      return;
+    }
+
+    setActionLoading(transferGroupId);
+    try {
+      const { data } = await TransferService.ensureTopup(transferGroupId);
+      if (data.code === EnumStatusResponse.SUCCESS) {
+        showSuccessToast(data.message ?? "Topup ensured");
+        if (data.data) {
+          applyTransferGroupUpdate(data.data);
+        }
+      } else {
+        showErrorToast(data.message ?? "Unable to ensure topup");
       }
     } catch {
       showErrorToast("Something went wrong");
@@ -319,7 +364,11 @@ const Transfers = () => {
                     (transfer.status === EnumTransferStatuses.FAILED ||
                       transfer.status ===
                         EnumTransferStatuses.FAILED_TO_INITIATE);
+                  const transferGroupId =
+                    transfer.transferGroup?.id ?? transfer.transferGroupId;
+                  const canEnsureTopup = !!transferGroupId && !topupInProgress;
                   const busy = actionLoading === transfer.id;
+                  const topupBusy = actionLoading === transferGroupId;
                   return (
                     <tr
                       key={transfer.id}
@@ -380,21 +429,43 @@ const Transfers = () => {
                       </td>
                       <td className="py-3 px-4 text-sm">
                         {!topupOk ? (
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              topupInProgress
-                                ? "bg-yellow-100 text-yellow-700"
-                                : "bg-red-100 text-red-700"
-                            }`}
-                            title="Transfer group topup"
-                          >
-                            {topupInProgress && (
-                              <Loader2 size={11} className="animate-spin" />
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                topupInProgress
+                                  ? "bg-yellow-100 text-yellow-700"
+                                  : "bg-red-100 text-red-700"
+                              }`}
+                              title="Transfer group topup"
+                            >
+                              {topupInProgress && (
+                                <Loader2 size={11} className="animate-spin" />
+                              )}
+                              {topupStatus
+                                ? `Topup ${formatEnumLabel(topupStatus).toLowerCase()}`
+                                : "No topup"}
+                            </span>
+                            {canEnsureTopup && (
+                              <button
+                                onClick={() => {
+                                  setPendingAction({
+                                    type: "topup",
+                                    transfer,
+                                  });
+                                  setConfirmOpen(true);
+                                }}
+                                disabled={topupBusy}
+                                title="Ensure topup"
+                                className="p-1.5 rounded-lg transition-colors disabled:opacity-50 bg-red-100 text-red-700 hover:bg-red-200"
+                              >
+                                {topupBusy ? (
+                                  <Loader2 size={16} className="animate-spin" />
+                                ) : (
+                                  <RefreshCw size={16} />
+                                )}
+                              </button>
                             )}
-                            {topupStatus
-                              ? `Topup ${formatEnumLabel(topupStatus).toLowerCase()}`
-                              : "No topup"}
-                          </span>
+                          </div>
                         ) : (
                           (canStart || canRetry) && (
                             <button
@@ -445,26 +516,49 @@ const Transfers = () => {
         open={confirmOpen}
         setOpen={setConfirmOpen}
         title={
-          pendingAction?.type === "start"
-            ? "Start transfer?"
-            : "Retry transfer?"
+          pendingAction?.type === "topup"
+            ? "Ensure topup?"
+            : pendingAction?.type === "start"
+              ? "Start transfer?"
+              : "Retry transfer?"
         }
         description={
-          pendingAction
-            ? `${pendingAction.type === "start" ? "Start" : "Retry"} a ${pendingAction.transfer.amount?.toLocaleString()} FCFA transfer${
-                pendingAction.transfer.restaurant?.name
-                  ? ` to ${pendingAction.transfer.restaurant.name}`
+          pendingAction?.type === "topup"
+            ? `Ensure the transfer group topup${
+                pendingAction.transfer.transferGroup?.totalTopupAmount
+                  ? ` of ${pendingAction.transfer.transferGroup.totalTopupAmount.toLocaleString()} FCFA`
                   : ""
               }.`
-            : undefined
+            : pendingAction
+              ? `${pendingAction.type === "start" ? "Start" : "Retry"} a ${pendingAction.transfer.amount?.toLocaleString()} FCFA transfer${
+                  pendingAction.transfer.restaurant?.name
+                    ? ` to ${pendingAction.transfer.restaurant.name}`
+                    : ""
+                }.`
+              : undefined
         }
-        confirmText={pendingAction?.type === "start" ? "Start" : "Retry"}
-        loading={!!pendingAction && actionLoading === pendingAction.transfer.id}
+        confirmText={
+          pendingAction?.type === "topup"
+            ? "Ensure"
+            : pendingAction?.type === "start"
+              ? "Start"
+              : "Retry"
+        }
+        loading={
+          !!pendingAction &&
+          actionLoading ===
+            (pendingAction.type === "topup"
+              ? (pendingAction.transfer.transferGroup?.id ??
+                pendingAction.transfer.transferGroupId)
+              : pendingAction.transfer.id)
+        }
         onConfirm={() => {
           if (pendingAction?.type === "start") {
             handleStart(pendingAction.transfer);
           } else if (pendingAction?.type === "retry") {
             handleRetry(pendingAction.transfer);
+          } else if (pendingAction?.type === "topup") {
+            handleEnsureTopup(pendingAction.transfer);
           }
         }}
       />

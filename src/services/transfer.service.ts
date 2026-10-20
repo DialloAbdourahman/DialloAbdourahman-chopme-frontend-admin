@@ -3,6 +3,7 @@ import type {
   EnumTransferStatuses,
   IOrchestrationResult,
   ITransferEntity,
+  ITransferGroupEntity,
   Pagination,
 } from "chopme-frontend-common";
 import { axiosBaseClient } from "../lib/axios";
@@ -35,6 +36,11 @@ export const TransferService = {
   retryTransfer: (transferId: string) => {
     return axiosBaseClient.post<IOrchestrationResult<ITransferEntity>>(
       `/transfers/${transferId}/retry-transfer`,
+    );
+  },
+  ensureTopup: (transferGroupId: string) => {
+    return axiosBaseClient.post<IOrchestrationResult<ITransferGroupEntity>>(
+      `/transfers/transfer-groups/${transferGroupId}/ensure-topup`,
     );
   },
 
