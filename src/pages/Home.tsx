@@ -103,7 +103,7 @@ const Home = () => {
             Welcome back, Admin
           </h1>
           <p className="text-sm md:text-base text-white/90 max-w-lg">
-            Monitor and manage ChopMe from one place. View restaurant
+            Monitor and manage TchopVite from one place. View restaurant
             performance, user activity, and platform analytics.
           </p>
         </div>

@@ -3,7 +3,6 @@ import { Link, NavLink } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import {
   ArrowRightLeft,
-  ChefHat,
   Home,
   Utensils,
   User,
@@ -54,14 +53,13 @@ const Navbar = () => {
   return (
     <>
       <nav className="bg-card shadow-sm sticky top-0 z-50 border-b border-border">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-4 py-2 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="bg-primary rounded-xl p-2">
-              <ChefHat size={22} className="text-white" />
-            </div>
-            <span className="text-xl font-bold text-text tracking-tight">
-              ChopMe
-            </span>
+            <img
+              src="/images/logos/half.png"
+              alt="TchopVite"
+              className="h-12 w-auto"
+            />
             <span className="text-xs font-semibold text-white bg-primary/80 rounded-full px-2 py-0.5">
               Admin
             </span>
